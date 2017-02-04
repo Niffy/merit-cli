@@ -1,0 +1,82 @@
+#!/usr/bin/env node
+
+
+let BaseMerit = require('./base'),
+    program = require('commander'),
+    log = require('./cli_logger'),
+    Table = require('cli-table')
+
+program
+  .option('-p --package [name]', 'dependency to change')
+  .option('-b --branch [name]', 'branch target, ie what git branch should be targeted')
+  .option('-s --semver [semver]', 'dependency semver to use')
+  .parse(process.argv)
+
+class MeritTarget extends BaseMerit{
+  constructor() {
+    super()
+  }
+
+  targetChange(repo) {
+    return new Promise((resolve, reject) => {
+      if (program.package === undefined) {
+        log.error('Must specify package')
+        return resolve()
+      }
+      if (program.branch !== undefined && program.semver !== undefined) {
+        log.error('Cannot specify branch and semver at the same time')
+        return resolve()
+      }
+      if (program.branch === undefined && program.semver === undefined) {
+        log.error('Must specify branch or semver to use')
+        return resolve()
+      }
+      let value, type
+      if (program.branch !== undefined) {
+        value = program.branch
+        type = 'branch'
+      }
+      
+      if (program.semver !== undefined) {
+        value = program.semver
+        type = 'semver'
+      }
+      
+      this.target.setDep(repo, program.package, value, type, this.repos)
+      .then((result)=> {
+        if (result.hasDep === true && result.written === true) {
+          log.info(`${repo.name}: Dep ${program.package} has been changed from ${result.previous} to ${result.now}`)
+        }
+        if (result.hasDep === true && result.incorrectType === true) {
+          log.error(`${repo.name}: Dep ${program.package} is of incorrect type`)
+        }
+        if (result.hasDep === false) {
+          log.error(`${repo.name}: Dep ${program.package} does not exist`)
+        }
+        resolve()
+      }).catch(reject)
+    })
+  }
+
+  manage() {
+    return new Promise((resolve, reject) => {
+      let method = this.loop.bind(this, this.targetChange.bind(this))
+      method()
+      .then(resolve)
+      .catch(reject)
+    })
+  }
+
+  run () {
+    this.loadConfig()
+    .then(() => this.manage())
+    .catch((err) => {
+      console.log(err);
+      log.error(err)
+    })
+  }
+
+}
+
+let files = new MeritTarget();
+files.run()

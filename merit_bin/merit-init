@@ -1,0 +1,136 @@
+#!/usr/bin/env node
+
+let BaseMerit = require('./base'),
+    program = require('commander'),
+    fs = require('fs'),
+    fse = require('fs-extra'),
+    path = require('path'),
+    log = require('./cli_logger'),
+    meritCore =  require('merit-core')
+
+program
+  .option('-d, --deps <path>', 'dependency json')
+  .parse(process.argv)
+
+class Init extends BaseMerit{
+  constructor() {
+    super()
+  }
+
+  checkExists () {
+    return new Promise((resolve, reject) => {
+      let p, repoExists
+      if (program.deps !== undefined) {
+        p = program.deps
+      } else {
+        console.log(this.workingDirectory, this.depsFilename);
+        p = path.join(this.workingDirectory, this.depsFilename)
+      }
+      repoExists = fs.existsSync(p)
+      if (repoExists === false) {
+        return reject(`deps file does not exist: ${p}`)
+      }
+      this.depsProvided = p
+      return resolve()
+    })
+  }
+
+  isValid() {
+    return new Promise((resolve, reject) => {
+      fse.readJson(this.depsProvided, (err, json) => {
+        this.depsRaw = json
+        this.reader.validateConfig(json)
+        .then((result) => {
+          if (result === true) {
+            return resolve()
+          }
+          return reject(`Deps JSON not valid`)
+        })
+        .catch(reject)
+      })
+    })
+  }
+
+  notInitiatedAlready () {
+    return new Promise((resolve, reject) => {
+      let allreadyInitated = fs.existsSync(this.meritDirPath)
+      if (allreadyInitated === true) {
+        return reject(`Already initiated`)
+      }
+      return resolve()
+    })
+  }
+
+  createDir () {
+    return new Promise((resolve, reject) => {
+      log.info(`Creating merit directory at ${this.meritDirPath}`);
+      fs.mkdir(this.meritDirPath, function (err, data) {
+        if (err) {
+          if (err.code === 'EEXIST') {
+            return reject(`Merit already initiated`)
+          } else {
+            log.error(err)
+            return reject(`Could not create merit directory at ${this.meritDirPath}`)
+          }
+        } else {
+          log.info(`Directory created`)
+          return resolve()
+        }
+      })
+    })
+  }
+
+  copyDeps () {
+    return new Promise((resolve, reject) => {
+      fse.copy(this.depsProvided, this.meritDeps, (err, resp) => {
+        if (err) {
+          return reject(err)
+        }
+        return resolve()
+      })
+    })
+  }
+
+  loadConfig () {
+    return new Promise((resolve, reject) => {
+      this.reader.loadConfig(this.depsRaw)
+      .then((result) => {
+        this.config = result
+        this.config.failed.map((item) => {
+          log.error(`Could not read ${item.name}`)
+        })
+        this.writeConfig()
+        .then(resolve)
+        .catch(reject)
+      })
+      .catch(reject)
+    })
+  }
+
+  writeConfig() {
+    return new Promise((resolve, reject) => {
+      fse.writeJson(this.meritConfig, this.config, { spaces: 2}, (err) => {
+          if (err) {
+            return reject(err)
+          }
+          return resolve()
+        })
+    })
+  }
+
+  run () {
+    this.checkExists()
+    .then(() => this.isValid())
+    .then(() => this.notInitiatedAlready())
+    .then(() => this.createDir())
+    .then(() => this.copyDeps())
+    .then(() => this.loadConfig())
+    .catch((err) => {
+      console.log(err);
+      log.error(err)
+    })
+  }
+}
+
+let init = new Init();
+init.run()

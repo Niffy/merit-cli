@@ -1,0 +1,55 @@
+#!/usr/bin/env node
+
+
+let BaseMerit = require('./base'),
+    program = require('commander'),
+    log = require('./cli_logger'),
+    Table = require('cli-table')
+
+program
+  .parse(process.argv)
+
+class MeritCommit extends BaseMerit{
+  constructor() {
+    super()
+  }
+
+  commit(repo) {
+    return new Promise((resolve, reject) => {
+      let msg = program.args[0]
+      this.repo.commit(repo, msg)
+      .then((result) => {
+        if (result.commited === true && result.skipped === true) {
+          log.info(`Nothing to commit at repo: ${repo.name}`)
+        }
+        if (result.commited === true) {
+          log.info(`Commited all files at repo: ${repo.name} successful`)
+        }
+
+      })
+      .catch(reject)
+    })
+  }
+
+  manage() {
+    return new Promise((resolve, reject) => {
+      let method = this.loop.bind(this, this.commit.bind(this))
+      method()
+      .then(resolve)
+      .catch(reject)
+    })
+  }
+
+  run () {
+    this.loadConfig()
+    .then(() => this.manage())
+    .catch((err) => {
+      console.log(err);
+      log.error(err)
+    })
+  }
+
+}
+
+let files = new MeritCommit();
+files.run()

@@ -1,0 +1,18 @@
+{
+  "name": "merit-cli",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "lint": "eslint -c .eslintrc.json swell_bin/**/*.js; true"
+  },
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "chalk": "^1.1.3",
+    "cli-table": "^0.3.1",
+    "commander": "git+https://github.com/tj/commander.js.git",
+    "fs-extra": "^2.0.0"
+  }
+}

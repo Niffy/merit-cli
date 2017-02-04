@@ -1,0 +1,159 @@
+#!/usr/bin/env node
+
+let BaseMerit = require('./base'),
+    program = require('commander'),
+    fs = require('fs'),
+    fse = require('fs-extra'),
+    path = require('path'),
+    log = require('./cli_logger'),
+    Table = require('cli-table')
+
+program
+  .option('-B --newbranch', 'checkout new branch')
+  .option('-d --delete', 'delete branch')
+  .option('--remote [remote]', 'remote to use')
+  .option('--push', 'push branch')
+  .option('--pull', 'pull branch')
+  .option('--tags', 'push tags')
+  .option('--followtags', 'also push with tags')
+  .parse(process.argv)
+
+class MeritBranch extends BaseMerit{
+  constructor() {
+    super()
+  }
+
+  checkout(repo) {
+    return new Promise((resolve, reject) => {
+      let ops = {b: false}
+      let branch = this.selectedBranch
+
+      this.branch.checkout(repo, branch, ops)
+      .then((result) => {
+        if (result.checkout === false) {
+          log.error(`Could not checkout ${branch} at repo: ${repo.name}`, result.err)
+        } else {
+          log.info(`Checkout ${branch} at repo: ${repo.name} successful`)
+        }
+      })
+      .catch(reject)
+    })
+  }
+
+  create(repo) {
+    return new Promise((resolve, reject) => {
+      let branch = this.selectedBranch
+      let ops = {b: true}
+
+      this.branch.checkout(repo, branch, ops)
+      .then((result) => {
+        if (result.checkout === false) {
+          log.error(`Could not created ${branch} at repo: ${repo.name}`, result.err)
+        } else {
+          log.info(`Created ${branch} at repo: ${repo.name} successful`)
+        }
+      })
+      .catch(reject)
+    })
+  }
+
+  remove(repo) {
+    return new Promise((resolve, reject) => {
+      let branch = this.selectedBranch
+      this.branch.remove(repo, branch)
+      .then((result) => {
+        if (result.removed === false) {
+          log.error(`Could not remove ${branch} at repo: ${repo.name}`, result.err)
+        } else {
+          log.info(`Removed ${branch} at repo: ${repo.name} successful`)
+        }
+      })
+      .catch(reject)
+    })
+  }
+
+  push(repo) {
+    return new Promise((resolve, reject) => {
+      let branch = this.selectedBranch
+      let ops = {}
+      if (program.remote) {
+        ops.remote = program.remote
+      }
+      if (program.tags){
+        ops.tags = true
+      }
+      if (program.followtags){
+        ops['follow-tags'] = true
+      }
+      this.branch.push(repo, branch, ops)
+      .then((result) => {
+        if (result.pushed === false) {
+          log.error(`Could not push ${branch} at repo: ${repo.name}`, result.err)
+        } else {
+          log.info(`Pushed ${branch} at repo: ${repo.name} successful`)
+        }
+      })
+      .catch(reject)
+    })
+  }
+
+  pull(repo) {
+    return new Promise((resolve, reject) => {
+      let branch = this.selectedBranch
+      let ops = {}
+      if (program.remote) {
+        ops.remote = program.remote
+      }
+      this.branch.pull(repo, branch, ops)
+      .then((result) => {
+        if (result.pulled === false) {
+          log.error(`Could not pull ${branch} at repo: ${repo.name}`, result.err)
+        } else {
+          log.info(`Pull ${branch} at repo: ${repo.name} successful`)
+        }
+      })
+      .catch(reject)
+    })
+  }
+
+  manage() {
+    return new Promise((resolve, reject) => {
+      let method
+      if (program.delete === true) {
+        method = this.loop.bind(this, this.remove.bind(this))
+      } else if (program.push) {
+        method = this.loop.bind(this, this.push.bind(this))
+      } else if (program.newbranch) {
+        method = this.loop.bind(this, this.create.bind(this))
+      } else if (program.pull) {
+        method = this.loop.bind(this, this.pull.bind(this))
+      } else {
+        method = this.loop.bind(this, this.checkout.bind(this))
+      }
+
+      method()
+      .then(resolve)
+      .catch(reject)
+    })
+  }
+
+  run () {
+    this.selectedBranch = program.args
+    if (this.selectedBranch.length === 1) {
+      this.selectedBranch = this.selectedBranch[0]
+      this.loadConfig()
+      .then(() => this.manage())
+      .catch((err) => {
+        console.log(err);
+        log.error(err)
+      })
+    } else if (this.branch.length > 1) {
+      log.error('Provide only only one branch')
+    } else {
+      log.error('No branch provided')
+    }
+  }
+}
+
+let status = new MeritBranch();
+status.run()

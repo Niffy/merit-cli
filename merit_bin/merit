@@ -1,0 +1,22 @@
+#!/usr/bin/env node
+
+let program = require('commander')
+
+// program
+//   .version('0.0.1')
+//   .command('install [name]', 'install one or more packages').alias('i')
+//   .command('search [query]', 'search with optional query').alias('s')
+//   .command('list', 'list packages installed')
+//   .command('publish', 'publish the package').alias('p')
+//   .parse(process.argv);
+
+program
+  .version('0.0.1')
+  .command('init', 'init the manager')
+  .command('status', 'Get the status of each repo')
+  .command('branch [branch]', 'Checkout branches of each repo')
+  .command('add', 'add files')
+  .command('commit [message]', 'commit files - do not forget to put in quotes')
+  .command('tag [message]', 'Tag the current head')
+  .command('target', 'Set a dependency to target')
+  .parse(process.argv)

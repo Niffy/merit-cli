@@ -1,0 +1,54 @@
+#!/usr/bin/env node
+
+
+let BaseMerit = require('./base'),
+    program = require('commander'),
+    log = require('./cli_logger'),
+    Table = require('cli-table')
+
+program
+  .parse(process.argv)
+
+class MeritTag extends BaseMerit{
+  constructor() {
+    super()
+  }
+
+  tag(repo) {
+    return new Promise((resolve, reject) => {
+      let msg = program.args[0] 
+      this.repo.tag(repo, msg)
+      .then((result) => {
+        if (result.tagged === true) {
+          log.info(`Tagged repo: ${repo.name} successful with '${msg}'`)
+        }
+        if (result.tagged === false && result.existsAlready === true) {
+          log.error(`Tagged repo: ${repo.name} tag '${msg}' already exists`)
+        }
+      })
+      .catch(reject)
+    })
+  }
+
+  manage() {
+    return new Promise((resolve, reject) => {
+      let method = this.loop.bind(this, this.tag.bind(this))
+      method()
+      .then(resolve)
+      .catch(reject)
+    })
+  }
+
+  run () {
+    this.loadConfig()
+    .then(() => this.manage())
+    .catch((err) => {
+      console.log(err);
+      log.error(err)
+    })
+  }
+
+}
+
+let files = new MeritTag();
+files.run()

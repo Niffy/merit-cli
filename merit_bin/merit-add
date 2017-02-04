@@ -1,0 +1,55 @@
+#!/usr/bin/env node
+
+let BaseMerit = require('./base'),
+    program = require('commander'),
+    log = require('./cli_logger'),
+    Table = require('cli-table')
+
+program
+  .option('-a --all', 'add all')
+  .parse(process.argv)
+
+class MeritFiles extends BaseMerit{
+  constructor() {
+    super()
+  }
+
+  addAll(repo) {
+    return new Promise((resolve, reject) => {
+      let ops = {b: false}
+      let branch = this.selectedBranch
+      this.repo.addAll(repo, branch, ops)
+      .then((result) => {
+        if (result.added === true) {
+          log.info(`Adding all files to staging area at repo: ${repo.name} successful`)
+        }
+      })
+      .catch(reject)
+    })
+  }
+
+  manage() {
+    return new Promise((resolve, reject) => {
+      let method
+      if (program.all === true) {
+        method = this.loop.bind(this, this.addAll.bind(this))
+      }
+      method()
+      .then(resolve)
+      .catch(reject)
+    })
+  }
+
+  run () {
+    this.loadConfig()
+    .then(() => this.manage())
+    .catch((err) => {
+      console.log(err);
+      log.error(err)
+    })
+  }
+
+}
+
+let files = new MeritFiles();
+files.run()
