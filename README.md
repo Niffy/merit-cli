@@ -9,7 +9,7 @@ Pull down merit-cli, merit-gift, merit-core repo's
 
 In merit-core run 
 
-````
+```
 npm link
 ```
 
