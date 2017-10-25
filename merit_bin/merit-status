@@ -62,7 +62,10 @@ class MeritStatus extends BaseMerit{
         this.update(repo.name, 'uptodate', value.status.upToDate)
         return resolve()
       })
-      .catch(reject)
+      .catch((err) => {
+        console.log(`Could not get status for ${repo.name}`)
+        return reject(err)
+      })
     })
   }
 
@@ -73,7 +76,10 @@ class MeritStatus extends BaseMerit{
         this.update(repo.name, 'branch', value.name)
         return resolve()
       })
-      .catch(reject)
+     .catch((err) => {
+        console.log(`Could not get branch for ${repo.name}`)
+        return reject(err)
+      })
     })
   }
 
