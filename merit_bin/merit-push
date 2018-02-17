@@ -1,0 +1,91 @@
+#!/usr/bin/env node
+
+let BaseMerit = require('./base'),
+    program = require('commander'),
+    log = require('./cli_logger')
+
+
+    function getStuff(val, memo) {
+      console.log('stuff', val, memo)
+    }
+    
+
+program
+  .option('--remote [remote]', 'remote to use')
+  .option('--tags', 'push tags')
+  .option('--follow-tags', 'also push with tags')
+  .option('--set-upstream', 'set the upstream. Cannot be used with remote/tags/follow-tags')
+  .parse(process.argv)
+
+class MeritPush extends BaseMerit{
+  constructor() {
+    super()
+  }
+
+  pushBranch(repo) {
+    return new Promise((resolve, reject) => {
+      let ops = {}
+      if (program.remote) {
+        ops.remote = program.remote
+      }
+      if (program.tags){
+        ops.tags = true
+      }
+      if (program.followTags){
+        ops['follow-tags'] = true
+      }
+      this.push.pushBranch(repo, null, ops)
+      .then((result) => {
+        if (result.pushed === false) {
+          log.error(`Could not push to repo: ${repo.name}`, result.err)
+        } else {
+          log.info(`Pushed to repo: ${repo.name} successful`)
+        }
+      })
+      .catch(reject)
+    })
+  }
+
+  setUpstream(repo) {
+    return new Promise((resolve, reject) => {
+      let ops = {}
+      ops.remote = program.args[1]
+      ops.branch = program.args[0]
+      this.push.pushUpstream(repo, ops)
+      .then((result) => {
+        if (result.pushed === false) {
+          log.error(`Could not set upstream ${ops.branch} to remote ${ops.remote} for repo: ${repo.name}`, result.err)
+        } else {
+          log.info(`${ops.branch} branch upstream is now the remote ${ops.remote}`)
+        }
+      })
+      .catch(reject)
+    })
+  }
+
+  manage() {
+    return new Promise((resolve, reject) => {
+      let method
+      if (program.setUpstream) {
+        method = this.loop.bind(this, this.setUpstream.bind(this))
+      } else {
+        method = this.loop.bind(this, this.pushBranch.bind(this))
+      }
+      method()
+      .then(resolve)
+      .catch(reject)
+    })
+  }
+
+  run () {
+    this.loadConfig()
+    .then(() => this.manage())
+    .catch((err) => {
+      console.log(err);
+      log.error(err)
+    })
+  }
+}
+
+let status = new MeritPush()
+status.run()
