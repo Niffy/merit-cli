@@ -2,6 +2,9 @@
 * merit-core - this carries out the operations
 * merit-cli - a way for the user to use merit-core
 
+# Dev notes
+
+Adding new commands in merit_bin will need to be chmod'd to 755
 
 # How to install 
 

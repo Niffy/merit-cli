@@ -15,6 +15,7 @@ program
   .command('init', 'init the manager')
   .command('status', 'Get the status of each repo')
   .command('branch [branch]', 'Checkout branches of each repo')
+  .command('push [branch]', 'push a branch')
   .command('add', 'add files')
   .command('commit [message]', 'commit files - do not forget to put in quotes')
   .command('tag [message]', 'Tag the current head')

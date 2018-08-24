@@ -17,6 +17,7 @@ class BaseMerit {
     this.branch = meritCore.Branch
     this.repo = meritCore.Repo
     this.target = meritCore.Target
+    this.push = meritCore.Push
     this.depsFilename = deps
     this.configFilename = config
     this.workingDirectory = dir
